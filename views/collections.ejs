@@ -1,0 +1,177 @@
+<%- include('layout', { 
+    title: 'Collections',
+    body: `
+        <h1>Collections trong ${locals.dbName}</h1>
+        <button onclick="showAddModal()">Thêm Collection</button>
+        <ul>
+            ${locals.collections.map(collection => `
+                <li>
+                    <a href="/documents?database=${locals.dbName}&collection=${collection}${locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : ''}">${collection}</a>
+                    <button onclick="showEditModal('${collection}')">Sửa</button>
+                    <button onclick="showDeleteModal('${collection}')">Xóa</button>
+                </li>
+            `).join('')}
+        </ul>
+        <p><a href="/databases${locals.mongoUrl ? '?mongoUrl=' + encodeURIComponent(mongoUrl) : ''}">Quay lại danh sách databases</a></p>
+
+        <div id="addModal" class="modal">
+            <div class="modal-content">
+                <h2>Thêm Collection mới</h2>
+                <input type="text" id="newCollectionName" placeholder="Tên collection mới">
+                <button onclick="addCollection()">Thêm</button>
+                <button onclick="closeModal('addModal')">Hủy</button>
+            </div>
+        </div>
+
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <h2>Đổi tên Collection</h2>
+                <input type="text" id="editCollectionName" placeholder="Tên collection mới">
+                <button onclick="updateCollection()">Cập nhật</button>
+                <button onclick="closeModal('editModal')">Hủy</button>
+            </div>
+        </div>
+
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <h2>Xóa Collection</h2>
+                <p>Bạn có chắc chắn muốn xóa collection này?</p>
+                <button onclick="deleteCollection()">Xóa</button>
+                <button onclick="closeModal('deleteModal')">Hủy</button>
+            </div>
+        </div>
+
+        <style>
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0,0,0,0.4);
+            }
+
+            .modal-content {
+                background-color: #fefefe;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                max-width: 500px;
+            }
+        </style>
+
+        <script>
+            let editingCollection = '';
+
+            function showAddModal() {
+                document.getElementById('addModal').style.display = 'block';
+            }
+
+            function showEditModal(collection) {
+                editingCollection = collection;
+                document.getElementById('editCollectionName').value = collection;
+                document.getElementById('editModal').style.display = 'block';
+            }
+
+            function showDeleteModal(collection) {
+                editingCollection = collection;
+                document.getElementById('deleteModal').style.display = 'block';
+            }
+
+            function closeModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+                if (modalId === 'editModal' || modalId === 'deleteModal') {
+                    editingCollection = '';
+                }
+            }
+
+            function addCollection() {
+                const newCollectionName = document.getElementById('newCollectionName').value;
+                fetch('/collections/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        collectionName: newCollectionName
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Collection added successfully');
+                        location.reload();
+                    } else {
+                        alert('Error adding collection: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error adding collection');
+                });
+            }
+
+            function updateCollection() {
+                const newName = document.getElementById('editCollectionName').value;
+                fetch('/collections/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        oldName: editingCollection,
+                        newName: newName
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Collection renamed successfully');
+                        location.reload();
+                    } else {
+                        alert('Error renaming collection: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error renaming collection');
+                });
+            }
+
+            function deleteCollection() {
+                fetch('/collections/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        collectionName: editingCollection
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Collection deleted successfully');
+                        location.reload();
+                    } else {
+                        alert('Error deleting collection: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error deleting collection');
+                });
+            }
+        </script>
+    `
+}) %>

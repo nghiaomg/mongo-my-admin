@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= title %></title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #sidebar {
+            width: 250px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+        #main-container {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #header {
+            background-color: #333;
+            color: white;
+            padding: 10px 20px;
+        }
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow: auto;
+        }
+        .content-wrapper {
+            min-width: 100%;
+            display: inline-block;
+        }
+        #tableView {
+            overflow-x: auto;
+            white-space: nowrap;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        .document {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-x: auto;
+        }
+        button {
+            padding: 5px 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Databases</h2>
+        <ul>
+            <% if (locals.databases && databases.length > 0) { %>
+                <% databases.forEach(function(db) { %>
+                    <li>
+                        <a href="/collections?database=<%= db %><%= locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : '' %>" 
+                           class="<%= locals.currentDb && db === currentDb ? 'current' : '' %>">
+                            <%= db %>
+                        </a>
+                    </li>
+                <% }); %>
+            <% } else { %>
+                <li>Không có database nào</li>
+            <% } %>
+        </ul>
+    </div>
+    <div id="main-container">
+        <div id="header">
+            <% if (locals.currentDb) { %>
+                <span>Database: <%= currentDb %></span>
+                <% if (locals.currentCollection) { %>
+                    <span> | Collection: 
+                        <select id="collectionSelect" onchange="changeCollection(this.value)">
+                            <% if (locals.collections && collections.length > 0) { %>
+                                <% collections.forEach(function(collection) { %>
+                                    <option value="<%= collection %>" <%= collection === currentCollection ? 'selected' : '' %>>
+                                        <%= collection %>
+                                    </option>
+                                <% }); %>
+                            <% } %>
+                        </select>
+                    </span>
+                <% } %>
+            <% } %>
+            <a href="/databases<%= locals.mongoUrl ? '?mongoUrl=' + encodeURIComponent(mongoUrl) : '' %>">Databases</a>
+            <% if (locals.currentDb) { %>
+                <a href="/collections?database=<%= currentDb %><%= locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : '' %>">Collections</a>
+            <% } %>
+        </div>
+        <div id="main-content">
+            <%- body %>
+        </div>
+    </div>
+    <script>
+        function changeCollection(collection) {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set('collection', collection);
+            window.location.href = currentUrl.toString();
+        }
+    </script>
+</body>
+</html>

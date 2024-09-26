@@ -1,0 +1,29 @@
+<div id="sidebar">
+    <h2>Databases</h2>
+    <ul>
+        <% if (locals.databases && databases.length > 0) { %>
+            <% databases.forEach(function(db) { %>
+                <li>
+                    <a href="/collections?database=<%= db %><%= locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : '' %>" 
+                       class="<%= locals.currentDb && db === currentDb ? 'current' : '' %>">
+                        <%= db %>
+                    </a>
+                    <% if (locals.currentDb && db === currentDb && locals.collections) { %>
+                        <ul>
+                            <% collections.forEach(function(collection) { %>
+                                <li>
+                                    <a href="/documents?database=<%= currentDb %>&collection=<%= collection %><%= locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : '' %>"
+                                       class="<%= locals.currentCollection && collection === currentCollection ? 'current' : '' %>">
+                                        <%= collection %>
+                                    </a>
+                                </li>
+                            <% }); %>
+                        </ul>
+                    <% } %>
+                </li>
+            <% }); %>
+        <% } else { %>
+            <li>Chưa có database nào</li>
+        <% } %>
+    </ul>
+</div>

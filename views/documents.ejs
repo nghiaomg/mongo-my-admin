@@ -1,0 +1,355 @@
+<%- include('layout', { 
+    title: `Documents trong ${locals.currentCollection || 'Collection'}`,
+    body: `
+        <div class="content-wrapper">
+            <h1>Documents trong ${locals.currentCollection || 'Collection'}</h1>
+            <button onclick="toggleView()">Chuyển đổi chế độ xem</button>
+            <button onclick="showAddModal()">Thêm Document</button>
+            <div id="tableView" style="display: block; overflow-x: auto;">
+                ${locals.documents && documents.length > 0 ? `
+                    <table id="documentsTable">
+                        <thead id="tableHeader"></thead>
+                        <tbody id="tableBody"></tbody>
+                    </table>
+                ` : '<p>Không có document nào trong collection này</p>'}
+            </div>
+            <div id="objectView" style="display: none;">
+                ${locals.documents && documents.length > 0 ? `
+                    ${documents.map(doc => `
+                        <div class="document">
+                            <h3>Document ID: ${doc._id}</h3>
+                            <pre>${JSON.stringify(doc, null, 2)}</pre>
+                            <button onclick="showEditModal('${doc._id}')">Sửa</button>
+                            <button onclick="showDeleteModal('${doc._id}')">Xóa</button>
+                        </div>
+                    `).join('')}
+                ` : '<p>Không có document nào trong collection này</p>'}
+            </div>
+            <p><a href="/collections?database=${locals.dbName}${locals.mongoUrl ? '&mongoUrl=' + encodeURIComponent(mongoUrl) : ''}">Quay lại danh sách collections</a></p>
+        </div>
+
+        <!-- Add Document Modal -->
+        <div id="addModal" class="modal">
+            <div class="modal-content">
+                <h2>Thêm Document mới</h2>
+                <button onclick="toggleAddFormView()">Chuyển đổi chế độ xem</button>
+                <div id="addFormTable" style="display: block;"></div>
+                <div id="addFormObject" style="display: none;">
+                    <textarea id="addObjectData" rows="10" cols="50"></textarea>
+                </div>
+                <button onclick="addDocument()">Lưu</button>
+                <button onclick="closeModal('addModal')">Hủy</button>
+            </div>
+        </div>
+
+        <!-- Edit Document Modal -->
+        <div id="editModal" class="modal">
+            <div class="modal-content">
+                <h2>Sửa Document</h2>
+                <button onclick="toggleEditFormView()">Chuyển đổi chế độ xem</button>
+                <div id="editFormTable" style="display: block;"></div>
+                <div id="editFormObject" style="display: none;">
+                    <textarea id="editObjectData" rows="10" cols="50"></textarea>
+                </div>
+                <button onclick="updateDocument()">Cập nhật</button>
+                <button onclick="closeModal('editModal')">Hủy</button>
+            </div>
+        </div>
+
+        <!-- Delete Document Modal -->
+        <div id="deleteModal" class="modal">
+            <div class="modal-content">
+                <h2>Xóa Document</h2>
+                <p>Bạn có chắc chắn muốn xóa document này?</p>
+                <button onclick="deleteDocument()">Xóa</button>
+                <button onclick="closeModal('deleteModal')">Hủy</button>
+            </div>
+        </div>
+
+        <style>
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0,0,0,0.4);
+            }
+
+            .modal-content {
+                background-color: #fefefe;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+                max-width: 600px;
+            }
+
+            .form-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
+
+            .form-table th, .form-table td {
+                border: 1px solid #ddd;
+                padding: 8px;
+                text-align: left;
+            }
+
+            .form-table th {
+                background-color: #f2f2f2;
+            }
+
+            .form-table input {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            textarea {
+                width: 100%;
+                box-sizing: border-box;
+            }
+        </style>
+
+        <script>
+            const documents = ${JSON.stringify(documents)};
+            let editingDocumentId = null;
+            let allKeys = new Set();
+            let isAddFormTableView = true;
+            let isEditFormTableView = true;
+
+            function toggleView() {
+                const tableView = document.getElementById('tableView');
+                const objectView = document.getElementById('objectView');
+                if (tableView.style.display === 'none') {
+                    tableView.style.display = 'block';
+                    objectView.style.display = 'none';
+                } else {
+                    tableView.style.display = 'none';
+                    objectView.style.display = 'block';
+                }
+            }
+
+            function createTable() {
+                const tableHeader = document.getElementById('tableHeader');
+                const tableBody = document.getElementById('tableBody');
+
+                // Get all unique keys from all documents
+                documents.forEach(doc => {
+                    Object.keys(doc).forEach(key => allKeys.add(key));
+                });
+
+                // Create header row
+                const headerRow = document.createElement('tr');
+                allKeys.forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = key;
+                    headerRow.appendChild(th);
+                });
+                const actionsHeader = document.createElement('th');
+                actionsHeader.textContent = 'Actions';
+                headerRow.appendChild(actionsHeader);
+                tableHeader.appendChild(headerRow);
+
+                // Create rows for each document
+                documents.forEach(doc => {
+                    const row = document.createElement('tr');
+                    allKeys.forEach(key => {
+                        const td = document.createElement('td');
+                        td.textContent = JSON.stringify(doc[key] || '');
+                        row.appendChild(td);
+                    });
+                    const actionsTd = document.createElement('td');
+                    const editButton = document.createElement('button');
+                    editButton.textContent = 'Sửa';
+                    editButton.onclick = () => showEditModal(doc._id);
+                    const deleteButton = document.createElement('button');
+                    deleteButton.textContent = 'Xóa';
+                    deleteButton.onclick = () => showDeleteModal(doc._id);
+                    actionsTd.appendChild(editButton);
+                    actionsTd.appendChild(deleteButton);
+                    row.appendChild(actionsTd);
+                    tableBody.appendChild(row);
+                });
+            }
+
+            function createForm(formId, doc = {}) {
+                const form = document.getElementById(formId);
+                form.innerHTML = '';
+                const table = document.createElement('table');
+                table.className = 'form-table';
+                
+                allKeys.forEach(key => {
+                    if (key !== '_id') {
+                        const row = document.createElement('tr');
+                        const keyCell = document.createElement('th');
+                        keyCell.textContent = key;
+                        const valueCell = document.createElement('td');
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.name = key;
+                        input.value = doc[key] || '';
+                        valueCell.appendChild(input);
+                        row.appendChild(keyCell);
+                        row.appendChild(valueCell);
+                        table.appendChild(row);
+                    }
+                });
+                
+                form.appendChild(table);
+            }
+
+            function toggleAddFormView() {
+                isAddFormTableView = !isAddFormTableView;
+                document.getElementById('addFormTable').style.display = isAddFormTableView ? 'block' : 'none';
+                document.getElementById('addFormObject').style.display = isAddFormTableView ? 'none' : 'block';
+                if (!isAddFormTableView) {
+                    const formData = getFormData('addFormTable');
+                    document.getElementById('addObjectData').value = JSON.stringify(formData, null, 2);
+                } else {
+                    createForm('addFormTable', JSON.parse(document.getElementById('addObjectData').value || '{}'));
+                }
+            }
+
+            function toggleEditFormView() {
+                isEditFormTableView = !isEditFormTableView;
+                document.getElementById('editFormTable').style.display = isEditFormTableView ? 'block' : 'none';
+                document.getElementById('editFormObject').style.display = isEditFormTableView ? 'none' : 'block';
+                if (!isEditFormTableView) {
+                    const formData = getFormData('editFormTable');
+                    document.getElementById('editObjectData').value = JSON.stringify(formData, null, 2);
+                } else {
+                    createForm('editFormTable', JSON.parse(document.getElementById('editObjectData').value || '{}'));
+                }
+            }
+
+            function showAddModal() {
+                createForm('addFormTable');
+                document.getElementById('addObjectData').value = '{}';
+                document.getElementById('addModal').style.display = 'block';
+            }
+
+            function showEditModal(documentId) {
+                editingDocumentId = documentId;
+                const doc = documents.find(d => d._id === documentId);
+                createForm('editFormTable', doc);
+                document.getElementById('editObjectData').value = JSON.stringify(doc, null, 2);
+                document.getElementById('editModal').style.display = 'block';
+            }
+
+            function showDeleteModal(documentId) {
+                editingDocumentId = documentId;
+                document.getElementById('deleteModal').style.display = 'block';
+            }
+
+            function closeModal(modalId) {
+                document.getElementById(modalId).style.display = 'none';
+                if (modalId === 'editModal' || modalId === 'deleteModal') {
+                    editingDocumentId = null;
+                }
+            }
+
+            function getFormData(formId) {
+                const form = document.getElementById(formId);
+                const data = {};
+                form.querySelectorAll('input').forEach(input => {
+                    data[input.name] = input.value;
+                });
+                return data;
+            }
+
+            function addDocument() {
+                const newDocumentData = isAddFormTableView ? getFormData('addFormTable') : JSON.parse(document.getElementById('addObjectData').value);
+                fetch('/documents/add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        collection: '${locals.currentCollection}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        document: newDocumentData
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Document added successfully');
+                        location.reload();
+                    } else {
+                        alert('Error adding document: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error adding document');
+                });
+            }
+
+            function updateDocument() {
+                const updatedDocumentData = isEditFormTableView ? getFormData('editFormTable') : JSON.parse(document.getElementById('editObjectData').value);
+                fetch('/documents/update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        collection: '${locals.currentCollection}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        documentId: editingDocumentId,
+                        document: updatedDocumentData
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Document updated successfully');
+                        location.reload();
+                    } else {
+                        alert('Error updating document: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error updating document');
+                });
+            }
+
+            function deleteDocument() {
+                fetch('/documents/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        database: '${locals.dbName}',
+                        collection: '${locals.currentCollection}',
+                        mongoUrl: '${locals.mongoUrl}',
+                        documentId: editingDocumentId
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Document deleted successfully');
+                        location.reload();
+                    } else {
+                        alert('Error deleting document: ' + data.error);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error:', error);
+                    alert('Error deleting document');
+                });
+            }
+
+            // Call createTable when the page loads
+            createTable();
+        </script>
+    `
+}) %>

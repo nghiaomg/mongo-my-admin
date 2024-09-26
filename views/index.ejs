@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý MongoDB</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+        #sidebar {
+            width: 250px;
+            background-color: #f0f0f0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #main-content {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        h1, h2 {
+            color: #333;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        li {
+            margin-bottom: 10px;
+        }
+        a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        .current {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar">
+        <h2>Databases</h2>
+        <ul>
+            <% if (locals.databases && databases.length > 0) { %>
+                <% databases.forEach(function(db) { %>
+                    <li>
+                        <a href="/database/<%= db %>" class="<%= db === currentDb ? 'current' : '' %>">
+                            <%= db %>
+                        </a>
+                    </li>
+                <% }); %>
+            <% } else { %>
+                <li>Chưa có database nào</li>
+            <% } %>
+        </ul>
+    </div>
+    <div id="main-content">
+        <% if (locals.currentDb) { %>
+            <h1>Collections trong <%= currentDb %></h1>
+            <ul>
+                <% if (locals.collections && collections.length > 0) { %>
+                    <% collections.forEach(function(collection) { %>
+                        <li><a href="/collection/<%= collection %>"><%= collection %></a></li>
+                    <% }); %>
+                <% } else { %>
+                    <li>Không có collection nào trong database này</li>
+                <% } %>
+            </ul>
+        <% } else { %>
+            <h1>Chưa kết nối đến database</h1>
+        <% } %>
+    </div>
+</body>
+</html>
